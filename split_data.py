@@ -34,12 +34,7 @@ def split_data():
     y_train = np.reshape(np.array(y_train), (X_train.shape[0], 1))
     y_dev = np.reshape(np.array(y_dev), (X_dev.shape[0], 1))
     y_test = np.reshape(np.array(y_test), (X_test.shape[0], 1))
-    # print("X_train" + X_train.shape)
-    # print("X_dev" + X_dev.shape)
-    # print("X_test" + X_test.shape)
-    # print("y_train" + y_train.shape)
-    # print("y_dev" + y_dev.shape)
-    # print("y_test" + y_test.shape)
+
     return 2, X_train, y_train, X_test, y_test, X_dev, y_dev
 
 _, X_train, y_train, X_test, y_test, X_dev, y_dev = split_data()
