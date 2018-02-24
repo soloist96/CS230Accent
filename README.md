@@ -3,6 +3,5 @@
 
 A convolutional neural network that classifies audio of English speech based on accent as "native" or "non-native".
 
-## References
-* [sound-cnn](https://github.com/awjuliani/sound-cnn)
+## Code References
 * [Coursera "Convolutional Neural Networks" C4M1 code](https://www.coursera.org/learn/convolutional-neural-networks)
