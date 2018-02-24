@@ -1,4 +1,6 @@
 pillow
 numpy
+scipy
 matplotlib
 tensorflow
+librosa
