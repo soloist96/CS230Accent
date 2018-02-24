@@ -9,15 +9,16 @@ import utilities as util
 
 from model import SoundCNN
 
-arguments = sys.argv
 
-bpm = int(arguments[1])
-samplingRate = int(arguments[2])
-mypath = str(arguments[3])
-iterations = int(arguments[4])
-batchSize = int(arguments[5])
+""" Command-line arguments """
+# arguments = sys.argv
+# bpm = int(arguments[1])
+# samplingRate = int(arguments[2])
+# mypath = str(arguments[3])
+iterations = 10
+batchSize = 50
 
-classes,trainX,trainYa,valX,valY,testX,testY = util.processAudio(bpm,samplingRate,mypath)
+classes,trainX,trainYa,valX,valY,testX,testY = util.split_data()
 
 def trainNetConv(maxIter):
 
@@ -26,6 +27,8 @@ def trainNetConv(maxIter):
 		tf.initialize_all_variables().run()
 		saver = tf.train.Saver(tf.all_variables())
 		myIters = 0
+		print(trainX.shape)
+		print(trainYa.shape)
 		fullTrain = np.concatenate((trainX,trainYa),axis=1)
 		while myIters < maxIter:
 			perms = np.random.permutation(fullTrain)
@@ -46,4 +49,3 @@ def trainNetConv(maxIter):
 		save_path = saver.save(sess, "./model.ckpt")
 
 trainNetConv(iterations)
-
