@@ -7,8 +7,14 @@ from sklearn.model_selection import train_test_split
 Load data from US male and Indian male, split into train/test/dev.
 """
 def split_data():
-    native_filenames_list = ["data/bdl_spectrogram_array.npy", "data/aew_spectrogram_array.npy", "data/rms_spectrogram_array.npy"]
-    non_native_filenames_list = ["data/ksp_spectrogram_array.npy", "data/aup_spectrogram_array.npy", "data/gka_spectrogram_array.npy"]
+    # US male
+    native_filenames_list = ["data/bdl_spectrogram_array.npy",\
+     "data/aew_spectrogram_array.npy",\
+     "data/rms_spectrogram_array.npy"]
+    # Indian male
+    non_native_filenames_list = ["data/ksp_spectrogram_array.npy",\
+     "data/aup_spectrogram_array.npy",\
+     "data/gka_spectrogram_array.npy"]
     
     data = []
     labels = []
