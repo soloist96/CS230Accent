@@ -1,36 +1,29 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
 import sys
 import numpy as np
-import math
 from pydub import AudioSegment
 import matplotlib.pyplot as plt
+from scipy import signal
+from scipy.io import wavfile
+import librosa
+from librosa import display
 import glob
 
-"""
-# Function that reads in the label file
-# Input: label file name
-# Returns: dictionary of phoemes ('time': 'phoeme')
-"""
-def read_label_into_phoeme_dict(file_name):
 
-	phoeme_dict = {}
-
-	f_label_file = open(file_name, "r")
-
-	for line in iter(f_label_file):
-		#print line
-		if line != "#\n":
-			split_line = line.split()
-			phoeme_dict[split_line[0]] = split_line[2]
-
-	return phoeme_dict
+# In[2]:
 
 
 """
-# Function that parse audio of individual phoeme from audio clip
+# Function that parse audio from audio clip
 # Input: wav file name, t1 (start of phoeme), t2 (end of phoeme)
 # Returns: audio segments of individual phoeme between t1 and t2
 """
-def parse_out_phoeme(audio_clip, t1, t2):
+def parse_out_segment(audio_clip, t1, t2):
 
 	# Grab audio segment between t1 and t2
 	# First grab the first t2 milliseconds
@@ -43,137 +36,159 @@ def parse_out_phoeme(audio_clip, t1, t2):
 	return audio_segment
 
 
-"""
-# Function that segments entire audio clip into indidivual phoemes
-# Input: wav file name, dictionary of phoemes with timestamps
-# Returns: dictionary of audio segments of phoemes ('time': 'phoeme audio segment')
-"""
-def segment_audio_into_phoemes(audio_file_name, label_phoemes_dict):
+# In[3]:
 
-	# Open the WAV file
+
+"""
+# Function that segments audio clip into smaller segments
+# Input: wav file name
+# Returns: dictionary of audio segments
+"""
+def segment_audio_clip(audio_file_name):
+
+	# Length is 1000ms = 1sec
+	segment_length = 500
+
+	# Read the audio file
 	audio_clip = AudioSegment.from_wav(audio_file_name)
+	#print audio_clip.duration_seconds
+	# Calculate the number of segments based on audio clip duration and segment length
+	audio_duration_ms = (audio_clip.duration_seconds)*1000
+	num_segments = int(audio_duration_ms / segment_length)
+	#print num_segments
+	
+	# Parse out wav file name
+	# Read in label file into dictionary
+	split_wav_file = audio_file_name.split('/wav\\')
+	#print str(split_wav_file)
+	split_wav_file_name = split_wav_file[1].split('.wav')
+	wav_file_name = split_wav_file_name[0]
 
-	print "Audio clip duration = " + str(audio_clip.duration_seconds)
-
-	# Sort the timestamps
-	timestamp_keys = label_phoemes_dict.keys()
-	timestamp_keys.sort()
-
-	# Initialize variables
+	# Segment the audio clip and save in dictionary
 	segment_dict = {}
-	prev_phoeme = ""
-	t1 = 0.0
-	t2 = 0.0
-	#print str(label_phoemes_dict)
-	#print str(timestamp_keys)
 
-	# Loop over the phoemes in the dictionary
-	for timestamp in timestamp_keys:
-
-		curr_phoeme = label_phoemes_dict[timestamp]
-
-		# pydub works in milliseconds
-		t1 = t2
-		t2 = float(timestamp)*1000.0
-
-		# Skip if phoeme is a pause ("pau")
-		if curr_phoeme != "pau" and prev_phoeme != "pau":
-			#print "PHOEME = " + prev_phoeme
-			#print "T1 = " + str(t1)
-			#print "T2 = " + str(t2)
-
-			# Parse out audio segment between t1 and t2, and save phoeme audio clip to dictionary
-			segment_dict[str(t1)] = parse_out_phoeme(audio_clip, t1, t2)
-
-		prev_phoeme = curr_phoeme
+	for i in range(num_segments):
+		key = wav_file_name + '_' + str(i)
+		segment_dict[key] = parse_out_segment(audio_clip, i*1000, i*1000+segment_length)
 
 	return segment_dict
 
 
+# In[4]:
+
+
 """
-# Function that exports each phoeme audio clip to indidivual WAV files
+# Function that exports each audio segment to individual WAV files
 # Input: dictionary of phoemes audio clips
 # Returns: nothing
 """
-def export_audio_segments(audio_segments_dict, wav_file_name):
+def export_audio_segments(audio_segments_dict, wav_file_name, accent_id):
 
 	for timestamp in audio_segments_dict:
-		export_file_name = wav_file_name + '_' + timestamp + '.wav'
+		export_file_name = accent_id + '_spectrograms\\' + timestamp + '.wav'
+		#export_file_name = timestamp + '.wav'
 
 		#Exports to a wav file
 		audio_segment = audio_segments_dict[timestamp]
 		audio_segment.export(export_file_name, format="wav")
 
 
+# In[11]:
+
+
 """
-# Function that creates spectrogram of each phoeme WAV file
+# Function that creates spectrogram of each WAV file
 # Input: none
 # Returns: nothing
 """
-def	convert_phoemes_to_spectrograms(wav_file_name):
+def convert_audio_to_spectrograms(accent_id):
+    reg_ex = accent_id + '_spectrograms\*.wav'
+    wav_file_list = glob.glob(reg_ex)
+    #print wav_file_list
+    
+    spectrogram_list = []
+    
+    for wav_file in wav_file_list:
+        #print wav_file
+        
+        # Convert wav file to spectrogram (FFT)
+        samples, sampling_rate = librosa.load(wav_file)
+        D = librosa.stft(samples)
+        D_magnitude = np.abs(D)
+        #print (D_magnitude).shape
+        
+        D_reshape = np.reshape(D_magnitude,(205,110))
+        #print D_reshape.shape
+        
+        spectrogram_list.append(D_reshape)
+        
+        D_amp_to_db = librosa.amplitude_to_db(D_magnitude, ref=np.max)
+        #plt.pcolormesh(D_amp_to_db)
+        #librosa.display.specshow(D_amp_to_db, y_axis='log', x_axis='time')
+        
+        # Find clip name
+        #split_str = accent_id + '_spectrograms\\'
+        #split_file_name = wav_file.split(split_str)
+        #wav_file_name = split_file_name[len(split_file_name)-1]
+        #split_wav_file = wav_file_name.split('.wav')
+        #wav_clip_name = split_wav_file[0]
+        
+        #plot_title_str = 'Power spectrogram of ' + accent_id + ' ' + wav_clip_name
+        #plt.title(plot_title_str)
+        #plt.colorbar(format='%+2.0f dB')
+        #plt.tight_layout()
+        #plt.show()
+        
+    return spectrogram_list
 
-	reg_ex = wav_file_name + '*.wav'
-	wav_file_list = glob.glob(reg_ex)
 
-	for wav_file in wav_file_list:
-		#print wav_file
-
-		# Convert wav file to spectrogram (FFT)
-		sample_rate, samples = wavfile.read(wav_file)
-		frequencies, times, spectogram = signal.spectrogram(samples, sample_rate)
-
-		# Create spectrogram plot
-		plt.pcolormesh(times, frequencies, spectogram)
-		fig = plt.imshow(spectogram)
-		plt.axis('off')
-		#plt.show()
-
-		# Create file name and save spectrogram plot
-		split_wav_file_name = wav_file.split('wav')
-		plot_name = './spectrograms/' + split_wav_file_name[0] + 'png'
-		#print plot_name
-		fig.axes.get_xaxis().set_visible(False)
-		fig.axes.get_yaxis().set_visible(False)
-		plt.savefig(plot_name, bbox_inches='tight', transparent=True, pad_inches=0)
+# In[14]:
 
 
 """
 # MAIN FUNCTION
 """
 if __name__ == "__main__":
+    
+    # Grab all the audio clip files
+    #accent_id_list = ['bdl','aew','rms','clb','eey','ljm','lnh','slt','ahw','awb','fem','jmk','rxr','axb','slp','aup','gka','ksp']
+    accent_id_list = ['aup']
+    for accent_id in accent_id_list:
+        cmd_arg = '../dataset/cmu_us_' + accent_id + '_arctic/wav/arctic_*.wav'
+        clip_file_list = glob.glob(cmd_arg)
 
-	os.system('mkdir spectrograms')
+        #print clip_file_list
 
-	# Grab all the audio clip files
-	#clip_file_list = glob.glob('../../cmu_arctic/cmu_us_bdl_arctic/wav/*.wav')
-	clip_file_list = glob.glob('../../cmu_arctic/cmu_us_ksp_arctic/wav/*.wav')
+        #--------------------------------------------------
+        # Split audio into segments
+        #--------------------------------------------------
+        for wav_file in clip_file_list:
+            #print wav_file
+            audio_segments_dict = segment_audio_clip(wav_file)
+            #print audio_segments_dict
 
-	for wav_clip in clip_file_list:
-		print wav_clip
-		#--------------------------------------------------
-		# READ IN DATA
-		#--------------------------------------------------
-		# Read in label file into dictionary
-		split_wav_file = wav_clip.split('/wav/')
-		#print str(split_wav_file)
-		split_wav_file_name = split_wav_file[1].split('.wav')
-		wav_file_name = split_wav_file_name[0]
-		#print str(wav_file_name)
-		label_file_name = split_wav_file[0] + '/lab/' + wav_file_name + '.lab'
-		label_phoemes_dict = read_label_into_phoeme_dict(label_file_name)
-		#print str(phoeme_dict)
+            split_wav_file = wav_file.split('/wav\\')
+            #print str(split_wav_file)
+            split_wav_file_name = split_wav_file[1].split('.wav')
+            wav_file_name = split_wav_file_name[0]
 
-		#--------------------------------------------------
-		# SPLIT INTO PHOEMES
-		#--------------------------------------------------
-		audio_segments_dict = segment_audio_into_phoemes(wav_clip, label_phoemes_dict)
-	
-		#--------------------------------------------------
-		# EXPORT AS WAV FILES
-		#--------------------------------------------------
-		export_audio_segments(audio_segments_dict, wav_file_name)
+            #--------------------------------------------------
+            # EXPORT AS WAV FILES
+            #--------------------------------------------------
+            export_audio_segments(audio_segments_dict, wav_file_name, accent_id)
 
-		#--------------------------------------------------
-		# CONVERT TO SPECTROGRAM
-		#--------------------------------------------------
-		convert_phoemes_to_spectrograms(wav_file_name)
+        #--------------------------------------------------
+        # CONVERT TO SPECTROGRAM
+        #--------------------------------------------------
+        spectrogram_list = convert_audio_to_spectrograms(accent_id)
+        spectrogram_array = np.array(spectrogram_list)
+        print accent_id + str(spectrogram_array.shape)
+
+        #--------------------------------------------------
+        # PRINT OUT SPECTROGRAM TO FILE
+        #--------------------------------------------------
+        spectrogram_file_name = accent_id + '_spectrogram_array.npy'
+        np.save(spectrogram_file_name, spectrogram_array)
+    
+   
+
