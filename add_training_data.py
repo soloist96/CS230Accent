@@ -54,11 +54,10 @@ def add_data(orig_X_train, orig_y_train):
     X_train_full = np.array(X_train_full)
     y_train_full = np.reshape(np.array(y_train_full), (X_train_full.shape[0], 1))
 
-    print(X_train_full.shape)
-    print(y_train_full.shape)
-
     np.save("data/X_train_full", X_train_full)
+    print(X_train_full.shape)
     np.save("data/y_train_full", y_train_full)
+    print(y_train_full.shape)
 
 add_data("data/X_train.npy", "data/y_train.npy")
 
